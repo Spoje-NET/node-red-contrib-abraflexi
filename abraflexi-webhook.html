@@ -1,0 +1,104 @@
+<script type="text/javascript">
+    RED.nodes.registerType('abraflexi-webhook', {
+        category:     'input',
+        color:        '#4C90B8',
+        defaults: {
+            name: { value: '' },
+            path: { value: '/abraflexi/webhook', required: true }
+        },
+        credentials: {
+            secKey: { type: 'password' }
+        },
+        inputs:  0,
+        outputs: 1,
+        icon:    'font-awesome/fa-exchange',
+        paletteLabel: 'AbraFlexi',
+        label: function () {
+            return this.name || 'AbraFlexi webhook';
+        },
+        labelStyle: function () {
+            return this.name ? 'node_label_italic' : '';
+        },
+        outputLabels: ['change event']
+    });
+</script>
+
+<script type="text/html" data-template-name="abraflexi-webhook">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Název</label>
+        <input type="text" id="node-input-name" placeholder="AbraFlexi webhook">
+    </div>
+    <div class="form-row">
+        <label for="node-input-path"><i class="fa fa-globe"></i> Path</label>
+        <input type="text" id="node-input-path" placeholder="/abraflexi/webhook" style="width:70%">
+    </div>
+    <div class="form-row">
+        <label for="node-input-secKey"><i class="fa fa-key"></i> Secret key</label>
+        <input type="password" id="node-input-secKey" placeholder="nepovinné — vypne ověření">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="abraflexi-webhook">
+    <p>Přijímá webhookové POST požadavky z AbraFlexi (Changes API) a pro každý
+       záznam změny odešle jednu zprávu do flow.</p>
+
+    <h3>Nastavení</h3>
+    <dl class="message-properties">
+        <dt>Path <span class="property-type">string</span></dt>
+        <dd>URL cesta, na které bude endpoint zaregistrován.
+            Výchozí: <code>/abraflexi/webhook</code>.
+            Tuto plnou URL (včetně hostitele, portu a případného
+            <em>httpNodeRoot</em> prefixu) zadejte v AbraFlexi pod
+            <em>Nastavení → Webhooky</em>.</dd>
+        <dt>Secret key <span class="property-type">password</span></dt>
+        <dd>Nepovinné. Pokud je vyplněno, každý příchozí požadavek musí obsahovat
+            hlavičku <code>X-FB-Hook-SecKey</code> se stejnou hodnotou.
+            Požadavky s chybějícím nebo jiným klíčem jsou odmítnuty s HTTP 403.
+            Stejnou hodnotu zadejte v konfiguraci webhooku v AbraFlexi.
+            Klíč je uložen zašifrovaně v Node-RED credentials.</dd>
+    </dl>
+
+    <h3>Výstupní zpráva</h3>
+    <p>Pro každý záznam v <code>winstrom.changes[]</code> je odeslána jedna zpráva.</p>
+    <ol class="node-ports">
+        <li>change event
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>Jednotlivý záznam změny, např.:<br>
+                    <code>{ "@evidence": "faktura-vydana", "@operation": "create",
+                    "@timestamp": "2024-01-01 12:00:00.0", "id": "42", "external-ids": [] }</code>
+                </dd>
+                <dt>topic <span class="property-type">string</span></dt>
+                <dd>Typ evidence (dokladu), který se změnil, např. <code>faktura-vydana</code>.</dd>
+                <dt>operation <span class="property-type">string</span></dt>
+                <dd><code>create</code>, <code>update</code> nebo <code>delete</code>.</dd>
+                <dt>globalVersion <span class="property-type">string</span></dt>
+                <dd>Globální verze databáze AbraFlexi v okamžiku změny.</dd>
+            </dl>
+        </li>
+    </ol>
+
+    <h3>Jak zaregistrovat webhook v AbraFlexi</h3>
+    <ol>
+        <li>V AbraFlexi otevřete <em>Nastavení → Webhooky</em>.</li>
+        <li>Vytvořte nový webhook:
+            <ul>
+                <li><strong>URL</strong>: <code>http://&lt;váš-node-red&gt;:1880/abraflexi/webhook</code></li>
+                <li><strong>Formát</strong>: JSON</li>
+                <li><strong>Tajný klíč (secKey)</strong>: stejná hodnota jako v nastavení nodu</li>
+            </ul>
+        </li>
+        <li>AbraFlexi ihned odešle testovací prázdný POST — node ho zpracuje
+            tiše (žlutý status, žádná výstupní zpráva).</li>
+        <li>Při každé další změně v databázi AbraFlexi odešle POST s obálkou
+            <code>winstrom</code> a node vyšle jednu zprávu na každý záznam
+            v <code>changes[]</code>.</li>
+    </ol>
+
+    <h3>Stavové indikátory</h3>
+    <ul>
+        <li><b>Modrý kroužek — waiting</b>: node běží, zatím nepřišel žádný event.</li>
+        <li><b>Žlutý kroužek — ping</b>: přišel registrační ping z AbraFlexi (prázdná data).</li>
+        <li><b>Zelená tečka — timestamp</b>: čas poslední úspěšně zpracované změny.</li>
+    </ul>
+</script>

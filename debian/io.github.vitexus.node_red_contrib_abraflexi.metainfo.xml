@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="addon">
+  <id>io.github.vitexus.node_red_contrib_abraflexi</id>
+  <extends>io.github.vitexus.node_red</extends>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Node-RED Contrib AbraFlexi</name>
+  <summary>Node-RED input node that receives AbraFlexi Changes-API webhooks</summary>
+  <description>
+    <p>
+      Receives AbraFlexi (FlexiBee) webhook POST requests and emits one
+      Node-RED message per change record, enabling event-driven flows that
+      react to ERP changes in near real-time without polling.
+    </p>
+    <p>
+      Supports optional X-FB-Hook-SecKey header validation with the secret
+      stored encrypted in Node-RED credentials. Output messages carry the
+      evidence type as topic, the operation (create/update/delete), and the
+      full change record as payload.
+    </p>
+  </description>
+  <categories>
+    <category>Finance</category>
+  </categories>
+  <url type="homepage">https://github.com/Vitexus/node-red-contrib-abraflexi</url>
+  <url type="bugtracker">https://github.com/Vitexus/node-red-contrib-abraflexi/issues</url>
+  <url type="vcs-browser">https://github.com/Vitexus/node-red-contrib-abraflexi</url>
+  <developer id="io.github.vitexus">
+    <name>VitexSoftware</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-05-15"/>
+  </releases>
+</component>
