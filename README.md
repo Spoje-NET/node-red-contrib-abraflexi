@@ -1,3 +1,5 @@
+![node-red-contrib-abraflexi](node-red-contrib-abraflexi.svg?raw=true)
+
 # node-red-contrib-abraflexi
 
 Node-RED contribution package that receives [AbraFlexi](https://www.abraflexi.eu/) (FlexiBee) webhook notifications and emits one Node-RED message per change record. Enables event-driven flows that react to changes in the AbraFlexi ERP in near real-time — without polling.

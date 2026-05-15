@@ -19,6 +19,7 @@
       full change record as payload.
     </p>
   </description>
+  <icon type="stock">node-red-contrib-abraflexi</icon>
   <categories>
     <category>Finance</category>
   </categories>

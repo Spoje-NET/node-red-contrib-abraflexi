@@ -16,6 +16,9 @@ override_dh_auto_install:
 		install -d debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi/node_modules && \
 		cp -a node_modules/. debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi/node_modules/ \
 		|| true
+	install -d debian/node-red-contrib-abraflexi/usr/share/icons/hicolor/scalable/apps
+	install -m 644 node-red-contrib-abraflexi.svg \
+		debian/node-red-contrib-abraflexi/usr/share/icons/hicolor/scalable/apps/
 	install -d debian/node-red-contrib-abraflexi/usr/share/metainfo
 	install -m 644 debian/io.github.vitexus.node_red_contrib_abraflexi.metainfo.xml \
 		debian/node-red-contrib-abraflexi/usr/share/metainfo/
