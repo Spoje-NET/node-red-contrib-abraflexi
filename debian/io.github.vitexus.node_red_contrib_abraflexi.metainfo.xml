@@ -31,6 +31,15 @@
   </developer>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-05-20">
+      <description>
+        <ul>
+          <li>Add automated test suite (mocha, @node-red/node-test-helper, supertest)</li>
+          <li>Add benchmark monitor example flow (examples/benchmark-flow.json)</li>
+          <li>Update README with npm install instructions and example flow section</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-05-15"/>
   </releases>
 </component>

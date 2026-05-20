@@ -17,6 +17,7 @@ Node-RED contribution package that receives [AbraFlexi](https://www.abraflexi.eu
 - [Registering the webhook in AbraFlexi](#registering-the-webhook-in-abraflexi)
 - [Security](#security)
 - [Status indicators](#status-indicators)
+- [Example flows](#example-flows)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
 - [Requirements](#requirements)
@@ -65,22 +66,24 @@ Registers a POST HTTP endpoint on Node-RED's Express server (`RED.httpNode`) and
 
 ## Installation
 
+### npm (recommended)
+
+```bash
+cd ~/.node-red
+npm install node-red-contrib-abraflexi
+# Restart Node-RED
+```
+
+### Node-RED Palette Manager
+
+Search for **node-red-contrib-abraflexi** in the Node-RED palette manager (*Menu → Manage palette → Install*).
+
 ### From local path (development)
 
 ```bash
-# Go to your Node-RED user directory (default: ~/.node-red)
 cd ~/.node-red
-
-# Install the package from its local path
-npm install /path/to/AbraFlexi-NodeRed
-
-# Restart Node-RED
-node-red
+npm install /path/to/node-red-contrib-abraflexi
 ```
-
-### Via Node-RED Palette Manager
-
-Once published to npm, search for **node-red-contrib-abraflexi** in the Node-RED palette manager (*Menu → Manage palette → Install*).
 
 ---
 
@@ -210,7 +213,48 @@ AbraFlexi supports HTTPS webhook URLs. Configure your reverse proxy for TLS term
 
 ---
 
+## Example flows
+
+### AbraFlexi Benchmark monitor
+
+`examples/benchmark-flow.json` demonstrates a complete real-world pattern:
+
+```
+[abraflexi-webhook /abraflexi-benchmark]
+  ↓
+[Aggregate Metrics + Dispatch]  ← parses pass_N_op_dir timing data
+  ├─ Out 1 → [Benchmark Stats]        ← avg / max / 1s-spike table per operation
+  ├─ Out 2 → [GET faktura-vydana] → [Format invoices]   → [debug]
+  ├─ Out 3 → [GET banka]          → [Format bank moves] → [debug]
+  └─ Out 4 → [GET adresar]        → [Format addresses]  → [debug]
+```
+
+The flow is driven by [AbraFlexi-Tools](https://github.com/VitexSoftware/AbraFlexi-Tools).
+After running `make benchmark`, the tool wraps its JSON report in a `winstrom.changes[]`
+envelope and POSTs it to the webhook node. The flow aggregates per-cycle timing metrics
+into an avg / max / 1s-spike table and then fetches the most recently created records of
+each evidence type from AbraFlexi for inspection.
+
+**Import:** in Node-RED open *Menu → Import*, paste the contents of
+`examples/benchmark-flow.json`, and fill in the four `ABRAFLEXI_*` tab environment
+variables to point to your AbraFlexi instance.
+
+---
+
 ## Testing
+
+### Automated tests
+
+```bash
+cd node-red-contrib-abraflexi
+npm install
+npm test
+```
+
+The test suite (`test/abraflexi-webhook_spec.js`) uses `@node-red/node-test-helper` and
+`supertest` to spin up a real Node-RED runtime and drive it with HTTP requests. It covers:
+node loading, multi-change dispatch, registration ping suppression, secret key accept /
+reject, individual message properties, and path normalisation.
 
 ### Simulate a normal webhook
 

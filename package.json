@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-abraflexi",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Node-RED input node that receives AbraFlexi Changes-API webhooks and emits one message per change record",
   "keywords": ["node-red", "abraflexi", "flexibee", "webhook", "erp", "accounting", "changes-api"],
   "author": "Vitex Software <info@vitexsoftware.cz>",
@@ -14,6 +14,16 @@
   "dependencies": {
     "body-parser": "^1.20.0",
     "cookie-parser": "^1.4.6"
+  },
+  "devDependencies": {
+    "node-red": "^4.0.0",
+    "node-red-node-test-helper": "^0.3.6",
+    "mocha": "^10.0.0",
+    "should": "^13.2.3",
+    "supertest": "^6.3.0"
+  },
+  "scripts": {
+    "test": "mocha test/**_spec.js --timeout 10000"
   },
   "engines": {
     "node": ">=14.0.0"
