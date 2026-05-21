@@ -295,25 +295,52 @@ AbraFlexi supports HTTPS webhook URLs. Configure your reverse proxy for TLS term
 
 ## Example flows
 
+### Webhook to Record (canonical starter)
+
+`examples/webhook-to-record-flow.json` is the recommended starting point. It shows the
+complete `webhook → switch → evidence-type-node → debug` pattern for the most common
+evidence types:
+
+```
+[abraflexi-webhook /abraflexi-webhook]
+  ↓
+[switch by @evidence]
+  ├─ faktura-vydana  → [abraflexi-faktura-vydana]  → [summaryPayload debug] + [items debug]
+  ├─ faktura-prijata → [abraflexi-faktura-prijata] → [summaryPayload debug] + [items debug]
+  ├─ banka          → [abraflexi-banka]            → [summaryPayload debug] + [items debug]
+  ├─ adresar        → [abraflexi-adresar]          → [summaryPayload debug]
+  ├─ objednavka-vydana → [abraflexi-objednavka-vydana] → [summaryPayload debug]
+  └─ (else)         → [debug full msg]
+```
+
+**Import:** in Node-RED open *Menu → Import*, paste the contents of
+`examples/webhook-to-record-flow.json`, configure the `AbraFlexi Server` config node, and
+register the webhook in AbraFlexi pointing to `/abraflexi-webhook`.
+
+---
+
 ### AbraFlexi Benchmark monitor
 
-`examples/benchmark-flow.json` demonstrates a complete real-world pattern:
+`examples/benchmark-flow.json` demonstrates a performance-monitoring pattern driven by
+[AbraFlexi-Tools](https://github.com/VitexSoftware/AbraFlexi-Tools):
 
 ```
 [abraflexi-webhook /abraflexi-benchmark]
   ↓
 [Aggregate Metrics + Dispatch]  ← parses pass_N_op_dir timing data
-  ├─ Out 1 → [Benchmark Stats]        ← avg / max / 1s-spike table per operation
-  ├─ Out 2 → [GET faktura-vydana] → [Format invoices]   → [debug]
-  ├─ Out 3 → [GET banka]          → [Format bank moves] → [debug]
-  └─ Out 4 → [GET adresar]        → [Format addresses]  → [debug]
+  ├─ Out 1 → [Benchmark Stats]       ← avg / max / 1s-spike table per operation
+  └─ Out 2 → [switch by @evidence]
+               ├─ faktura-vydana  → [abraflexi-faktura-vydana]  → [debug summaryPayload]
+               ├─ faktura-prijata → [abraflexi-faktura-prijata] → [debug summaryPayload]
+               ├─ banka           → [abraflexi-banka]           → [debug summaryPayload]
+               ├─ adresar         → [abraflexi-adresar]         → [debug summaryPayload]
+               └─ (else)          → [debug full msg]
 ```
 
-The flow is driven by [AbraFlexi-Tools](https://github.com/VitexSoftware/AbraFlexi-Tools).
-After running `make benchmark`, the tool wraps its JSON report in a `winstrom.changes[]`
-envelope and POSTs it to the webhook node. The flow aggregates per-cycle timing metrics
-into an avg / max / 1s-spike table and then fetches the most recently created records of
-each evidence type from AbraFlexi for inspection.
+After running `make benchmark` in AbraFlexi-Tools the tool wraps its JSON report in a
+`winstrom.changes[]` envelope and POSTs it to the webhook node. The flow aggregates
+per-cycle timing metrics into an avg / max / 1s-spike table and then fetches the
+benchmarked record via the appropriate evidence-type node for inspection.
 
 **Import:** in Node-RED open *Menu → Import*, paste the contents of
 `examples/benchmark-flow.json`, and fill in the four `ABRAFLEXI_*` tab environment

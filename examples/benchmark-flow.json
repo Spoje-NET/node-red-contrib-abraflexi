@@ -3,7 +3,7 @@
     "id": "tab-abraflexi-benchmark",
     "type": "tab",
     "label": "AbraFlexi Benchmark",
-    "info": "Receives AbraFlexi Benchmark results via webhook, aggregates per-cycle\ntiming data into avg/max/spike stats, then fetches the last 5 created\nrecords of each type from AbraFlexi for inspection.\n\nSource: https://github.com/VitexSoftware/AbraFlexi-Tools\n\nRun:\n  make benchmark  (in AbraFlexi-Tools directory)",
+    "info": "Receives AbraFlexi Benchmark results via webhook, aggregates per-cycle timing data into avg/max/spike stats, then uses the evidence-type record nodes to fetch the full record that was just benchmarked.\n\nSource: https://github.com/VitexSoftware/AbraFlexi-Tools\n\nRun:\n  make benchmark  (in AbraFlexi-Tools directory)\n\nSetup:\n  1. Set the four tab env vars (gear icon on the tab).\n  2. Configure the 'AbraFlexi Server' config node (double-click any evidence node).\n  3. Register the webhook in AbraFlexi pointing to /abraflexi-benchmark.",
     "env": [
       {"name": "ABRAFLEXI_URL",      "value": "https://your-abraflexi-host:5434", "type": "str"},
       {"name": "ABRAFLEXI_LOGIN",    "value": "admin",                            "type": "str"},
@@ -11,43 +11,44 @@
       {"name": "ABRAFLEXI_COMPANY",  "value": "your_company_code",               "type": "str"}
     ]
   },
+
   {
-    "id": "node-bm-tls",
-    "type": "tls-config",
-    "name": "AbraFlexi TLS (self-signed OK)",
-    "verifyservercert": false
+    "id": "node-bm-config",
+    "type": "abraflexi-config",
+    "name": "AbraFlexi Server",
+    "url": "https://your-abraflexi-host:5434",
+    "company": "your_company_code"
   },
+
   {
     "id": "node-bm-webhook",
     "type": "abraflexi-webhook",
     "z": "tab-abraflexi-benchmark",
     "name": "AbraFlexi Benchmark",
     "path": "/abraflexi-benchmark",
-    "x": 160,
-    "y": 120,
+    "x": 160, "y": 120,
     "wires": [["node-bm-aggregate"]]
   },
+
   {
     "id": "node-bm-aggregate",
     "type": "function",
     "z": "tab-abraflexi-benchmark",
     "name": "Aggregate Metrics + Dispatch",
-    "func": "// msg.payload = change record from abraflexi-webhook\nconst data = msg.payload;\nconst metrics = data.metrics || {};\nconst cycles  = metrics.cycles || 0;\nconst SPIKE   = 1.0;\n\n// Aggregate pass_N_op_dir raw values\nconst agg = {};\nfor (const [key, rawVal] of Object.entries(metrics)) {\n    if (key === 'cycles' || key === 'delay') continue;\n    const m = key.match(/^pass_\\d+_(.+)_(read|write)$/);\n    if (!m) continue;\n    const v = parseFloat(rawVal);\n    if (isNaN(v)) continue;\n    const k = `${m[1]}:${m[2]}`;\n    if (!agg[k]) agg[k] = {op: m[1], dir: m[2], vals: []};\n    agg[k].vals.push(v);\n}\n\nconst rows = Object.values(agg)\n    .map(({op, dir, vals}) => ({\n        op, dir,\n        avg:    vals.reduce((s, v) => s + v, 0) / vals.length,\n        max:    Math.max(...vals),\n        spikes: vals.filter(v => v >= SPIKE).length\n    }))\n    .sort((a, b) => a.op.localeCompare(b.op) || a.dir.localeCompare(b.dir));\n\nconst SEP = '+' + [16,7,8,8,11].map(n => '-'.repeat(n)).join('+') + '+';\nlet table = `AbraFlexi Benchmark — ${cycles} cycles, delay ${metrics.delay||0}s\\n`;\ntable += `Status: ${(data.status||'?').toUpperCase()}  |  ${data['@timestamp']||data.timestamp||\"\"}\\n\\n`;\ntable += SEP + '\\n';\ntable += '| Operation      | Dir   | Avg    | Max    | 1s spikes |\\n';\ntable += SEP + '\\n';\nfor (const r of rows) {\n    table += `| ${r.op.replace(/_/g,' ').padEnd(14)} | ${r.dir.padEnd(5)} | `\n           + `${(r.avg.toFixed(3)+'s').padEnd(6)} | ${(r.max.toFixed(3)+'s').padEnd(6)} | `\n           + `${String(r.spikes).padEnd(9)} |\\n`\n           + SEP + '\\n';\n}\n\nconst ts = data['@timestamp'] || data.timestamp || '';\nnode.status({\n    fill:  data.status === 'success' ? 'green' : (data.status === 'error' ? 'red' : 'yellow'),\n    shape: 'dot',\n    text:  `${cycles} cycles @ ${new Date(ts).toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`\n});\n\nconst baseUrl = env.get('ABRAFLEXI_URL');\nconst company = env.get('ABRAFLEXI_COMPANY');\nconst auth    = 'Basic ' + Buffer.from(env.get('ABRAFLEXI_LOGIN') + ':' + env.get('ABRAFLEXI_PASSWORD')).toString('base64');\nconst hdrs    = {Authorization: auth, Accept: 'application/json'};\n\nfunction mkReq(evidence, qs, topic) {\n    return {payload: null, method: 'GET', topic,\n            url: `${baseUrl}/c/${company}/${evidence}.json?${qs}`,\n            headers: hdrs};\n}\n\nreturn [\n    {...msg, payload: table},\n    mkReq('faktura-vydana', 'order=id%40D&limit=5&detail=full',   'invoice'),\n    mkReq('banka',          'order=id%40D&limit=5',               'bank_move'),\n    mkReq('adresar',        'order=id%40D&limit=5',               'address')\n];",
-    "outputs": 4,
+    "func": "// msg.payload = change record from abraflexi-webhook\nconst data = msg.payload;\nconst metrics = data.metrics || {};\nconst cycles  = metrics.cycles || 0;\nconst SPIKE   = 1.0;\n\n// Aggregate pass_N_op_dir raw timing values\nconst agg = {};\nfor (const [key, rawVal] of Object.entries(metrics)) {\n    if (key === 'cycles' || key === 'delay') continue;\n    const m = key.match(/^pass_\\d+_(.+)_(read|write)$/);\n    if (!m) continue;\n    const v = parseFloat(rawVal);\n    if (isNaN(v)) continue;\n    const k = `${m[1]}:${m[2]}`;\n    if (!agg[k]) agg[k] = {op: m[1], dir: m[2], vals: []};\n    agg[k].vals.push(v);\n}\n\nconst rows = Object.values(agg)\n    .map(({op, dir, vals}) => ({\n        op, dir,\n        avg:    vals.reduce((s, v) => s + v, 0) / vals.length,\n        max:    Math.max(...vals),\n        spikes: vals.filter(v => v >= SPIKE).length\n    }))\n    .sort((a, b) => a.op.localeCompare(b.op) || a.dir.localeCompare(b.dir));\n\nconst SEP = '+' + [16,7,8,8,11].map(n => '-'.repeat(n)).join('+') + '+';\nlet table = `AbraFlexi Benchmark — ${cycles} cycles, delay ${metrics.delay||0}s\\n`;\ntable += `Status: ${(data.status||'?').toUpperCase()}  |  ${data['@timestamp']||data.timestamp||\"\"}\\n\\n`;\ntable += SEP + '\\n';\ntable += '| Operation      | Dir   | Avg    | Max    | 1s spikes |\\n';\ntable += SEP + '\\n';\nfor (const r of rows) {\n    table += `| ${r.op.replace(/_/g,' ').padEnd(14)} | ${r.dir.padEnd(5)} | `\n           + `${(r.avg.toFixed(3)+'s').padEnd(6)} | ${(r.max.toFixed(3)+'s').padEnd(6)} | `\n           + `${String(r.spikes).padEnd(9)} |\\n`\n           + SEP + '\\n';\n}\n\nconst ts = data['@timestamp'] || data.timestamp || '';\nnode.status({\n    fill:  data.status === 'success' ? 'green' : (data.status === 'error' ? 'red' : 'yellow'),\n    shape: 'dot',\n    text:  `${cycles} cycles @ ${new Date(ts).toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`\n});\n\n// Pass the benchmarked record ID to the evidence-type switch.\n// The benchmark tool sets @evidence and id on the change record.\nconst evidence = data['@evidence'] || '';\nconst id       = String(data.id || '').trim();\nconst dispatch = evidence && id\n    ? {...msg, payload: {id}, topic: evidence}\n    : null;\n\nreturn [{...msg, payload: table}, dispatch];",
+    "outputs": 2,
     "timeout": 0,
     "noerr": 0,
     "initialize": "",
     "finalize": "",
     "libs": [],
-    "x": 420,
-    "y": 120,
+    "x": 420, "y": 120,
     "wires": [
       ["node-bm-debug-stats"],
-      ["node-bm-http-invoice"],
-      ["node-bm-http-bank"],
-      ["node-bm-http-address"]
+      ["node-bm-switch"]
     ]
   },
+
   {
     "id": "node-bm-debug-stats",
     "type": "debug",
@@ -57,128 +58,171 @@
     "tosidebar": true,
     "complete": "payload",
     "targetType": "msg",
-    "x": 700,
-    "y": 60,
+    "x": 700, "y": 60,
+    "wires": []
+  },
+
+  {
+    "id": "node-bm-switch",
+    "type": "switch",
+    "z": "tab-abraflexi-benchmark",
+    "name": "route by evidence type",
+    "property": "topic",
+    "propertyType": "msg",
+    "rules": [
+      {"t": "eq", "v": "faktura-vydana",  "vt": "str"},
+      {"t": "eq", "v": "faktura-prijata", "vt": "str"},
+      {"t": "eq", "v": "banka",           "vt": "str"},
+      {"t": "eq", "v": "adresar",         "vt": "str"},
+      {"t": "else"}
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 5,
+    "x": 700, "y": 180,
+    "wires": [
+      ["node-bm-fv"],
+      ["node-bm-fp"],
+      ["node-bm-banka"],
+      ["node-bm-adresar"],
+      ["node-bm-debug-other"]
+    ]
+  },
+
+  {
+    "id": "node-bm-fv",
+    "type": "abraflexi-faktura-vydana",
+    "z": "tab-abraflexi-benchmark",
+    "name": "",
+    "server": "node-bm-config",
+    "x": 960, "y": 100,
+    "wires": [["node-bm-debug-fv"], ["node-bm-debug-fv-items"]]
+  },
+  {
+    "id": "node-bm-debug-fv",
+    "type": "debug",
+    "z": "tab-abraflexi-benchmark",
+    "name": "Faktura vydaná",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 1200, "y": 80,
     "wires": []
   },
   {
-    "id": "node-bm-http-invoice",
-    "type": "http request",
-    "z": "tab-abraflexi-benchmark",
-    "name": "GET faktura-vydana",
-    "method": "GET",
-    "ret": "obj",
-    "paytoqs": "ignore",
-    "url": "",
-    "tls": "node-bm-tls",
-    "persist": false,
-    "authType": "",
-    "headers": [],
-    "x": 700,
-    "y": 140,
-    "wires": [["node-bm-fmt-invoice"]]
-  },
-  {
-    "id": "node-bm-fmt-invoice",
-    "type": "function",
-    "z": "tab-abraflexi-benchmark",
-    "name": "Format invoices",
-    "func": "const records = (msg.payload.winstrom || {})['faktura-vydana'] || [];\nif (!records.length) { msg.payload = 'No invoices found in AbraFlexi.'; return msg; }\n\nconst D = '-'.repeat(64);\nlet out = `Last ${records.length} invoice(s) from AbraFlexi:\\n${D}\\n`;\nfor (const inv of records) {\n    out += `Code  : ${inv.kod||'?'}  |  Date: ${inv.datVyst||'?'}  |  Total: ${inv.sumCelkem||0} ${inv.mena||\"\"}\\n`;\n    out += `Desc  : ${inv.popis||\"\"}\\n`;\n    const items = Array.isArray(inv.polozkyDokladu) ? inv.polozkyDokladu\n                : (inv.polozkyDokladu ? [inv.polozkyDokladu] : []);\n    if (items.length) {\n        for (const i of items) {\n            out += `  Item: ${i.nazev||i.Nazev||'?'}  × ${i.mnozMj||1}  @  ${i.cenaMj||0} ${i.mena||\"\"}\\n`;\n        }\n        out += `  ──── Total: ${inv.sumCelkem||0} ${inv.mena||\"\"}\\n`;\n    } else {\n        out += `  Items: (none — created with bezPolozek=true)\\n`;\n    }\n    out += `${D}\\n`;\n}\nmsg.payload = out;\nreturn msg;",
-    "outputs": 1,
-    "x": 930,
-    "y": 140,
-    "wires": [["node-bm-debug-invoice"]]
-  },
-  {
-    "id": "node-bm-debug-invoice",
+    "id": "node-bm-debug-fv-items",
     "type": "debug",
     "z": "tab-abraflexi-benchmark",
-    "name": "Invoices",
+    "name": "Položky faktury",
     "active": true,
     "tosidebar": true,
     "complete": "payload",
-    "x": 1130,
-    "y": 140,
+    "targetType": "msg",
+    "x": 1200, "y": 130,
+    "wires": []
+  },
+
+  {
+    "id": "node-bm-fp",
+    "type": "abraflexi-faktura-prijata",
+    "z": "tab-abraflexi-benchmark",
+    "name": "",
+    "server": "node-bm-config",
+    "x": 960, "y": 200,
+    "wires": [["node-bm-debug-fp"], ["node-bm-debug-fp-items"]]
+  },
+  {
+    "id": "node-bm-debug-fp",
+    "type": "debug",
+    "z": "tab-abraflexi-benchmark",
+    "name": "Faktura přijatá",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 1200, "y": 180,
     "wires": []
   },
   {
-    "id": "node-bm-http-bank",
-    "type": "http request",
-    "z": "tab-abraflexi-benchmark",
-    "name": "GET banka",
-    "method": "GET",
-    "ret": "obj",
-    "paytoqs": "ignore",
-    "url": "",
-    "tls": "node-bm-tls",
-    "persist": false,
-    "authType": "",
-    "headers": [],
-    "x": 700,
-    "y": 220,
-    "wires": [["node-bm-fmt-bank"]]
-  },
-  {
-    "id": "node-bm-fmt-bank",
-    "type": "function",
-    "z": "tab-abraflexi-benchmark",
-    "name": "Format bank moves",
-    "func": "const records = (msg.payload.winstrom || {})['banka'] || [];\nif (!records.length) { msg.payload = 'No bank moves found in AbraFlexi.'; return msg; }\n\nconst D = '-'.repeat(64);\nlet out = `Last ${records.length} bank move(s) from AbraFlexi:\\n${D}\\n`;\nfor (const bm of records) {\n    const amount = bm.sumCelkem !== undefined ? `${bm.sumCelkem} ${bm.mena||\"\"}` : 'N/A';\n    out += `Code   : ${bm.kod||'?'}  |  Date: ${bm.datVyst||'?'}\\n`;\n    out += `Amount : ${amount}\\n`;\n    out += `VarSym : ${bm.varSym||'?'}  |  Desc: ${bm.popis||\"\"}\\n`;\n    out += `${D}\\n`;\n}\nmsg.payload = out;\nreturn msg;",
-    "outputs": 1,
-    "x": 930,
-    "y": 220,
-    "wires": [["node-bm-debug-bank"]]
-  },
-  {
-    "id": "node-bm-debug-bank",
+    "id": "node-bm-debug-fp-items",
     "type": "debug",
     "z": "tab-abraflexi-benchmark",
-    "name": "Bank Moves",
+    "name": "Položky fakt. přij.",
     "active": true,
     "tosidebar": true,
     "complete": "payload",
-    "x": 1130,
-    "y": 220,
+    "targetType": "msg",
+    "x": 1200, "y": 230,
+    "wires": []
+  },
+
+  {
+    "id": "node-bm-banka",
+    "type": "abraflexi-banka",
+    "z": "tab-abraflexi-benchmark",
+    "name": "",
+    "server": "node-bm-config",
+    "x": 960, "y": 300,
+    "wires": [["node-bm-debug-bk"], ["node-bm-debug-bk-items"]]
+  },
+  {
+    "id": "node-bm-debug-bk",
+    "type": "debug",
+    "z": "tab-abraflexi-benchmark",
+    "name": "Bankovní pohyb",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 1200, "y": 280,
     "wires": []
   },
   {
-    "id": "node-bm-http-address",
-    "type": "http request",
-    "z": "tab-abraflexi-benchmark",
-    "name": "GET adresar",
-    "method": "GET",
-    "ret": "obj",
-    "paytoqs": "ignore",
-    "url": "",
-    "tls": "node-bm-tls",
-    "persist": false,
-    "authType": "",
-    "headers": [],
-    "x": 700,
-    "y": 300,
-    "wires": [["node-bm-fmt-address"]]
-  },
-  {
-    "id": "node-bm-fmt-address",
-    "type": "function",
-    "z": "tab-abraflexi-benchmark",
-    "name": "Format addresses",
-    "func": "const records = (msg.payload.winstrom || {})['adresar'] || [];\nif (!records.length) { msg.payload = 'No addresses found in AbraFlexi.'; return msg; }\n\nconst D = '-'.repeat(64);\nlet out = `Last ${records.length} address(es) from AbraFlexi:\\n${D}\\n`;\nfor (const a of records) {\n    out += `Name    : ${a.nazev||'?'}\\n`;\n    out += `Email   : ${a.email||'?'}  |  Phone: ${a.tel||'?'}\\n`;\n    out += `City    : ${a.mesto||'?'}  |  Country: ${a.stat||'?'}\\n`;\n    out += `${D}\\n`;\n}\nmsg.payload = out;\nreturn msg;",
-    "outputs": 1,
-    "x": 930,
-    "y": 300,
-    "wires": [["node-bm-debug-address"]]
-  },
-  {
-    "id": "node-bm-debug-address",
+    "id": "node-bm-debug-bk-items",
     "type": "debug",
     "z": "tab-abraflexi-benchmark",
-    "name": "Addresses",
+    "name": "Položky banky",
     "active": true,
     "tosidebar": true,
     "complete": "payload",
-    "x": 1130,
-    "y": 300,
+    "targetType": "msg",
+    "x": 1200, "y": 330,
+    "wires": []
+  },
+
+  {
+    "id": "node-bm-adresar",
+    "type": "abraflexi-adresar",
+    "z": "tab-abraflexi-benchmark",
+    "name": "",
+    "server": "node-bm-config",
+    "x": 960, "y": 400,
+    "wires": [["node-bm-debug-adr"]]
+  },
+  {
+    "id": "node-bm-debug-adr",
+    "type": "debug",
+    "z": "tab-abraflexi-benchmark",
+    "name": "Adresář",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 1200, "y": 400,
+    "wires": []
+  },
+
+  {
+    "id": "node-bm-debug-other",
+    "type": "debug",
+    "z": "tab-abraflexi-benchmark",
+    "name": "Jiná evidence",
+    "active": true,
+    "tosidebar": true,
+    "complete": "true",
+    "targetType": "full",
+    "x": 960, "y": 480,
     "wires": []
   }
 ]

@@ -1,0 +1,304 @@
+[
+  {
+    "id": "tab-wtr",
+    "type": "tab",
+    "label": "AbraFlexi – Webhook to Record",
+    "info": "Canonical pattern for processing AbraFlexi change notifications:\n\n  abraflexi-webhook  →  Switch (by msg.topic)  →  evidence-type node  →  debug\n\nEach evidence-type node:\n  • fetches the full record from AbraFlexi by ID (msg.payload.id)\n  • emits msg.payload       — full record\n  • emits msg.summaryPayload — key fields only (kod, datum, firma, sumCelkem …)\n  • emits msg.writablePayload — fields safe for PUT/POST back to AbraFlexi\n  • emits msg.gdprFields    — GDPR personal-data field names\n  • emits msg.schema        — per-field type/constraint metadata\n\nSetup:\n  1. Double-click any evidence node and configure the AbraFlexi Server config node.\n  2. Register the webhook URL in AbraFlexi: Nastavení → Webhooky.\n  3. Trigger a change in AbraFlexi and watch the debug panel.\n\nTip: use msg.summaryPayload in downstream nodes for lightweight display/routing."
+  },
+  {
+    "id": "cfg-wtr",
+    "type": "abraflexi-config",
+    "name": "AbraFlexi Server",
+    "url": "https://your-abraflexi-host:5434",
+    "company": "your_company_code"
+  },
+  {
+    "id": "wtr-webhook",
+    "type": "abraflexi-webhook",
+    "z": "tab-wtr",
+    "name": "AbraFlexi changes",
+    "path": "/abraflexi/webhook",
+    "x": 140,
+    "y": 300,
+    "wires": [
+      [
+        "wtr-switch"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-switch",
+    "type": "switch",
+    "z": "tab-wtr",
+    "name": "route by evidence type",
+    "property": "topic",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "faktura-vydana",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "faktura-prijata",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "banka",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "adresar",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "objednavka-vydana",
+        "vt": "str"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 6,
+    "x": 380,
+    "y": 300,
+    "wires": [
+      [
+        "wtr-fv"
+      ],
+      [
+        "wtr-fp"
+      ],
+      [
+        "wtr-banka"
+      ],
+      [
+        "wtr-adresar"
+      ],
+      [
+        "wtr-obj"
+      ],
+      [
+        "wtr-other"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-fv",
+    "type": "abraflexi-faktura-vydana",
+    "z": "tab-wtr",
+    "name": "",
+    "server": "cfg-wtr",
+    "x": 640,
+    "y": 80,
+    "wires": [
+      [
+        "wtr-dbg-fv"
+      ],
+      [
+        "wtr-dbg-fv-items"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-dbg-fv",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Faktura vydaná",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "wtr-dbg-fv-items",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Položky faktury",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "wtr-fp",
+    "type": "abraflexi-faktura-prijata",
+    "z": "tab-wtr",
+    "name": "",
+    "server": "cfg-wtr",
+    "x": 640,
+    "y": 180,
+    "wires": [
+      [
+        "wtr-dbg-fp"
+      ],
+      [
+        "wtr-dbg-fp-items"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-dbg-fp",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Faktura přijatá",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "wtr-dbg-fp-items",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Položky fakt. přij.",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 210,
+    "wires": []
+  },
+  {
+    "id": "wtr-banka",
+    "type": "abraflexi-banka",
+    "z": "tab-wtr",
+    "name": "",
+    "server": "cfg-wtr",
+    "x": 640,
+    "y": 300,
+    "wires": [
+      [
+        "wtr-dbg-bk"
+      ],
+      [
+        "wtr-dbg-bk-items"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-dbg-bk",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Bankovní pohyb",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "wtr-dbg-bk-items",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Položky banky",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 330,
+    "wires": []
+  },
+  {
+    "id": "wtr-adresar",
+    "type": "abraflexi-adresar",
+    "z": "tab-wtr",
+    "name": "",
+    "server": "cfg-wtr",
+    "x": 640,
+    "y": 420,
+    "wires": [
+      [
+        "wtr-dbg-adr"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-dbg-adr",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Adresář (GDPR fields v msg)",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 920,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "wtr-obj",
+    "type": "abraflexi-objednavka-vydana",
+    "z": "tab-wtr",
+    "name": "",
+    "server": "cfg-wtr",
+    "x": 640,
+    "y": 520,
+    "wires": [
+      [
+        "wtr-dbg-obj"
+      ],
+      [
+        "wtr-dbg-obj-items"
+      ]
+    ]
+  },
+  {
+    "id": "wtr-dbg-obj",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Objednávka vydaná",
+    "active": true,
+    "tosidebar": true,
+    "complete": "summaryPayload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 500,
+    "wires": []
+  },
+  {
+    "id": "wtr-dbg-obj-items",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Položky objednávky",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 550,
+    "wires": []
+  },
+  {
+    "id": "wtr-other",
+    "type": "debug",
+    "z": "tab-wtr",
+    "name": "Jiná evidence (topic + id)",
+    "active": true,
+    "tosidebar": true,
+    "complete": "true",
+    "targetType": "full",
+    "x": 680,
+    "y": 630,
+    "wires": []
+  }
+]
