@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+     xmlns="http://www.w3.org/2000/svg">
+  <!-- Ceník -->
+  <g id="ic_PriceList"><path id="Combined-Shape" d="M20.162 11.77L12.5 19.5M6 7h20a2 2 0 012 2v4c-2 .667-3 1.667-3 3s1 2.333 3 3v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4c2-.667 3-1.667 3-3s-1-2.333-3-3V9a2 2 0 012-2z" stroke="#111619" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path id="Shape" fill-rule="evenodd" clip-rule="evenodd" d="M18.455 18.427a1 1 0 111.414 1.414 1 1 0 01-1.414-1.414zm-6.364-6.364a1 1 0 111.414 1.413 1 1 0 01-1.414-1.413z" fill="#111619"></path></g>
+</svg>
