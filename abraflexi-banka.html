@@ -42,8 +42,14 @@
         <li>Záznam
             <dl class="message-properties">
                 <dt>payload <span class="property-type">object</span></dt>
-                <dd>Celý záznam <code>banka</code> z AbraFlexi API.
+                <dd>Celý záznam <code>banka</code> ze serveru (včetně polí jen pro čtení).
                     Klíčová pole: <code>id</code>, <code>lastUpdate</code>, <code>kod</code>, <code>datVyst</code>, <code>popis</code>, <code>sumCelkem</code>, <code>sumCelkemMen</code>, <code>mena</code>.</dd>
+                <dt>writablePayload <span class="property-type">object</span></dt>
+                <dd>Pouze zapisovatelná pole — bezpečné pro PUT/POST zpět do AbraFlexi.
+                    Pole jen pro čtení (<code>readonlyFields</code>) jsou vynechána.</dd>
+                <dt>readonlyFields <span class="property-type">array</span></dt>
+                <dd>Seznam názvů polí označených v AbraFlexi API jako <em>isWritable=false</em>:
+                    <code>id</code>, <code>lastUpdate</code>, <code>updatedBy</code>, <code>createdBy</code>, <code>createdDate</code>, <code>zamekK</code>, <code>sumZklCelkem</code>, <code>sumDphCelkem</code>, <code>sumZklCelkemMen</code>, <code>sumDphCelkemMen</code>, <code>pocetPriloh</code>, <code>ucetni</code>, <code>zuctovano</code>, <code>storno</code>, <code>uzivatel</code> … (23 celkem).</dd>
                 <dt>topic <span class="property-type">string</span></dt>
                 <dd><code>banka</code></dd>
                 <dt>abraflexi_id <span class="property-type">string</span></dt>

@@ -3,6 +3,9 @@
 module.exports = function (RED) {
     var urlModule = require('url');
 
+    // Fields that AbraFlexi marks as read-only (isWritable=false)
+    var READONLY_FIELDS = ["id", "lastUpdate", "updatedBy", "createdBy", "createdDate", "zamekK", "sumZklCelkem", "sumDphCelkem", "sumZklCelkemMen", "sumDphCelkemMen", "pocetPriloh", "ucetni", "zuctovano", "storno", "uzivatel", "sazbaDphOsv", "sazbaDphSniz", "sazbaDphSniz2", "sazbaDphZakl", "uuid", "sparovano", "menaAlt", "sumCelkemAlt"];
+
     function fetchRecord(serverConfig, evidencePath, id, callback) {
         var baseUrl  = serverConfig.url.replace(/\/$/, '');
         var company  = serverConfig.company;
@@ -37,6 +40,14 @@ module.exports = function (RED) {
         req.end();
     }
 
+    function buildWritablePayload(record) {
+        var out = {};
+        Object.keys(record).forEach(function (k) {
+            if (READONLY_FIELDS.indexOf(k) === -1) { out[k] = record[k]; }
+        });
+        return out;
+    }
+
     function AbraFlexiVzajemnyZapocetNode(config) {
         RED.nodes.createNode(this, config);
         var node         = this;
@@ -67,11 +78,13 @@ module.exports = function (RED) {
                     node.status({ fill: 'yellow', shape: 'ring', text: 'nenalezeno' });
                     return done();
                 }
-                var record         = records[0];
-                var outMsg         = RED.util.cloneMessage(msg);
-                outMsg.payload     = record;
-                outMsg.topic       = 'vzajemny-zapocet';
-                outMsg.abraflexi_id = record.id || id;
+                var record              = records[0];
+                var outMsg              = RED.util.cloneMessage(msg);
+                outMsg.payload          = record;
+                outMsg.writablePayload  = buildWritablePayload(record);
+                outMsg.readonlyFields   = READONLY_FIELDS;
+                outMsg.topic            = 'vzajemny-zapocet';
+                outMsg.abraflexi_id     = record.id || id;
                 send([outMsg]);
                 node.status({ fill: 'green', shape: 'dot', text: record.kod || String(id) });
                 done();

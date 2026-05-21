@@ -3,6 +3,9 @@
 module.exports = function (RED) {
     var urlModule = require('url');
 
+    // Fields that AbraFlexi marks as read-only (isWritable=false)
+    var READONLY_FIELDS = ["id", "lastUpdate", "updatedBy", "createdBy", "createdDate", "zamekK", "sumOsv", "sumZklCelkem", "sumCelkem", "sumOsvMen", "sumZklCelkemMen", "sumCelkemMen", "faNazev2", "pocetPriloh", "ucetni", "zuctovano", "storno", "uzivatel", "uuid"];
+
     function fetchRecord(serverConfig, evidencePath, id, callback) {
         var baseUrl  = serverConfig.url.replace(/\/$/, '');
         var company  = serverConfig.company;
@@ -37,6 +40,14 @@ module.exports = function (RED) {
         req.end();
     }
 
+    function buildWritablePayload(record) {
+        var out = {};
+        Object.keys(record).forEach(function (k) {
+            if (READONLY_FIELDS.indexOf(k) === -1) { out[k] = record[k]; }
+        });
+        return out;
+    }
+
     function AbraFlexiSkladovyPohybNode(config) {
         RED.nodes.createNode(this, config);
         var node         = this;
@@ -67,14 +78,18 @@ module.exports = function (RED) {
                     node.status({ fill: 'yellow', shape: 'ring', text: 'nenalezeno' });
                     return done();
                 }
-                var record         = records[0];
-                var outMsg         = RED.util.cloneMessage(msg);
-                outMsg.payload     = record;
-                outMsg.topic       = 'skladovy-pohyb';
-                outMsg.abraflexi_id = record.id || id;
-                var subMsg     = RED.util.cloneMessage(msg);
-                subMsg.payload = record['skladovy-pohyb-polozka'] || [];
-                subMsg.topic   = 'skladovy-pohyb-polozka';
+                var record              = records[0];
+                var outMsg              = RED.util.cloneMessage(msg);
+                outMsg.payload          = record;
+                outMsg.writablePayload  = buildWritablePayload(record);
+                outMsg.readonlyFields   = READONLY_FIELDS;
+                outMsg.topic            = 'skladovy-pohyb';
+                outMsg.abraflexi_id     = record.id || id;
+                var subMsg              = RED.util.cloneMessage(msg);
+                subMsg.payload         = record['skladovy-pohyb-polozka'] || [];
+                subMsg.topic           = 'skladovy-pohyb-polozka';
+                subMsg.writablePayload = undefined;
+                subMsg.readonlyFields  = undefined;
                 send([outMsg, subMsg]);
                 node.status({ fill: 'green', shape: 'dot', text: record.kod || String(id) });
                 done();
