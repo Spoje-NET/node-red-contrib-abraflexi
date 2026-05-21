@@ -2,7 +2,7 @@
 
 # node-red-contrib-abraflexi
 
-Node-RED contribution package that receives [AbraFlexi](https://www.abraflexi.eu/) (FlexiBee) webhook notifications and emits one Node-RED message per change record. Enables event-driven flows that react to changes in the AbraFlexi ERP in near real-time — without polling.
+Node-RED contribution package for [AbraFlexi](https://www.abraflexi.eu/) (FlexiBee) ERP integration. Includes a webhook receiver node that emits one message per change record, a shared server config node, and 22 evidence-type record nodes that fetch full records from the AbraFlexi REST API.
 
 ---
 
@@ -10,7 +10,9 @@ Node-RED contribution package that receives [AbraFlexi](https://www.abraflexi.eu
 
 - [How it works](#how-it-works)
 - [Nodes](#nodes)
+  - [abraflexi-config](#abraflexi-config)
   - [abraflexi-webhook](#abraflexi-webhook)
+  - [Evidence-type record nodes](#evidence-type-record-nodes)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Output message](#output-message)
@@ -52,6 +54,22 @@ The payload format follows the [AbraFlexi Changes API](https://podpora.flexibee.
 
 ## Nodes
 
+### abraflexi-config
+
+| Property | Value |
+|---|---|
+| Category | config |
+
+Shared configuration node that holds the AbraFlexi server connection details used by all evidence-type record nodes.
+
+| Field | Description |
+|---|---|
+| **URL serveru** | Base URL of the AbraFlexi REST API, e.g. `https://your-server:5434`. |
+| **Firma** | Company code (e.g. `demo`). |
+| **Uživatel / Heslo** | API credentials. Stored encrypted in Node-RED credentials. |
+
+---
+
 ### abraflexi-webhook
 
 | Property | Value |
@@ -61,6 +79,63 @@ The payload format follows the [AbraFlexi Changes API](https://podpora.flexibee.
 | Outputs | 1 |
 
 Registers a POST HTTP endpoint on Node-RED's Express server (`RED.httpNode`) and forwards incoming AbraFlexi webhook payloads as messages.
+
+---
+
+### Evidence-type record nodes
+
+Each evidence-type node loads a specific AbraFlexi record by ID from the REST API and emits its full contents.
+
+| Category | Nodes |
+|---|---|
+| **Sales / Purchases** | `abraflexi-faktura-vydana`, `abraflexi-faktura-prijata`, `abraflexi-nabidka-vydana`, `abraflexi-nabidka-prijata`, `abraflexi-poptavka-vydana`, `abraflexi-poptavka-prijata`, `abraflexi-objednavka-vydana`, `abraflexi-objednavka-prijata`, `abraflexi-pohledavka`, `abraflexi-zavazek` |
+| **Cash / Bank** | `abraflexi-banka`, `abraflexi-bankovni-ucet`, `abraflexi-pokladni-pohyb`, `abraflexi-vzajemny-zapocet` |
+| **Warehouse / Products** | `abraflexi-cenik`, `abraflexi-skladovy-pohyb` |
+| **Internal / CRM** | `abraflexi-interni-doklad`, `abraflexi-smlouva`, `abraflexi-zakazka`, `abraflexi-majetek`, `abraflexi-adresar`, `abraflexi-kontakt` |
+
+**Input**
+
+| Property | Type | Description |
+|---|---|---|
+| `msg.payload.id` | `string \| number` | ID of the record to fetch. Alternatively `msg.id`. |
+
+**Outputs**
+
+- **Output 1 — record**: the full record from AbraFlexi.
+
+  | Property | Type | Description |
+  |---|---|---|
+  | `msg.payload` | `object` | Complete record from AbraFlexi (all fields, including read-only). |
+  | `msg.writablePayload` | `object` | Same record with all `isWritable=false` fields removed — safe to PUT/POST back to AbraFlexi. |
+  | `msg.readonlyFields` | `array` | Names of fields marked `isWritable=false` in the AbraFlexi API (e.g. `id`, `lastUpdate`, computed totals). |
+  | `msg.topic` | `string` | Evidence path, e.g. `faktura-vydana`. |
+  | `msg.abraflexi_id` | `string` | ID of the loaded record. |
+
+- **Output 2 — line items** *(transactional documents only)*: emitted for nodes that have sub-records (`-polozka`).
+
+  | Property | Type | Description |
+  |---|---|---|
+  | `msg.payload` | `array` | Array of line-item records (e.g. `faktura-vydana-polozka`). |
+  | `msg.topic` | `string` | Sub-evidence path, e.g. `faktura-vydana-polozka`. |
+
+Nodes with a line-items output: `faktura-vydana`, `faktura-prijata`, `nabidka-vydana`, `nabidka-prijata`, `poptavka-vydana`, `poptavka-prijata`, `objednavka-vydana`, `objednavka-prijata`, `pohledavka`, `zavazek`, `banka`, `pokladni-pohyb`, `interni-doklad`, `smlouva`, `skladovy-pohyb`.
+
+#### Typical flow pattern
+
+```
+[abraflexi-webhook]
+        │  msg.topic = 'faktura-vydana'
+        │  msg.payload.id = '42'
+        ▼
+[Switch — route by msg.topic]
+        │
+        ▼  topic === 'faktura-vydana'
+[abraflexi-faktura-vydana]  ← configured with abraflexi-config
+        │                 │
+     Output 1          Output 2
+  msg.payload        msg.payload
+  (full invoice)     (line items array)
+```
 
 ---
 
