@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-abraflexi",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Node-RED nodes for AbraFlexi: webhook receiver and evidence-type record nodes",
   "keywords": ["node-red", "abraflexi", "flexibee", "webhook", "erp", "accounting", "changes-api"],
   "author": "Vitex Software <info@vitexsoftware.cz>",
@@ -46,7 +46,8 @@
     "supertest": "^6.3.0"
   },
   "scripts": {
-    "test": "mocha test/**_spec.js --timeout 10000"
+    "test":     "mocha test/**_spec.js --timeout 10000",
+    "generate": "python3 tools/gen_nodes.py"
   },
   "engines": {
     "node": ">=14.0.0"

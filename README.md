@@ -101,13 +101,18 @@ Each evidence-type node loads a specific AbraFlexi record by ID from the REST AP
 
 **Outputs**
 
-- **Output 1 — record**: the full record from AbraFlexi.
+- **Output 1 — record**: the full record from AbraFlexi, plus metadata derived from the AbraFlexi API property definitions.
 
   | Property | Type | Description |
   |---|---|---|
-  | `msg.payload` | `object` | Complete record from AbraFlexi (all fields, including read-only). |
-  | `msg.writablePayload` | `object` | Same record with all `isWritable=false` fields removed — safe to PUT/POST back to AbraFlexi. |
-  | `msg.readonlyFields` | `array` | Names of fields marked `isWritable=false` in the AbraFlexi API (e.g. `id`, `lastUpdate`, computed totals). |
+  | `msg.payload` | `object` | Complete record from AbraFlexi — all fields, including read-only ones. |
+  | `msg.writablePayload` | `object` | Record with `isWritable=false` fields removed — safe to PUT/POST back to AbraFlexi without touching server-managed values (computed totals, audit stamps, lock flags). |
+  | `msg.summaryPayload` | `object` | Only the `inSummary=true` fields (typically 10–16 key fields such as `kod`, `datVyst`, `firma`, `sumCelkem`) — a lightweight object for routing, logging, and display nodes. |
+  | `msg.schema` | `object` | Per-field metadata map. Each key is a field name; the value is a sparse object with any of: `type`, `writable` (false), `mandatory` (true), `gdpr` (true), `businessLogic` (true), `inSummary` (true), `maxLength`, `decimal`, `digits`, `maxValue`, `minValue`, `fkEvidencePath`. Use this to validate or transform a record before writing it back. |
+  | `msg.readonlyFields` | `array` | Field names marked `isWritable=false`. |
+  | `msg.mandatoryFields` | `array` | Field names marked `mandatory=true` — required when creating a new record. |
+  | `msg.gdprFields` | `array` | Field names carrying personal data (`gdprType=OSOBNI`, e.g. names, addresses, emails). Use in GDPR-compliance flows to redact, audit, or mask sensitive values. |
+  | `msg.businessLogicFields` | `array` | Field names where `hasBusinessLogic=true` — changing these triggers server-side recalculations or side effects. Treat with care in write-back flows. |
   | `msg.topic` | `string` | Evidence path, e.g. `faktura-vydana`. |
   | `msg.abraflexi_id` | `string` | ID of the loaded record. |
 
@@ -313,6 +318,21 @@ each evidence type from AbraFlexi for inspection.
 **Import:** in Node-RED open *Menu → Import*, paste the contents of
 `examples/benchmark-flow.json`, and fill in the four `ABRAFLEXI_*` tab environment
 variables to point to your AbraFlexi instance.
+
+---
+
+## Regenerating evidence-type nodes
+
+The 22 evidence-type nodes are generated from the AbraFlexi API property definitions by `tools/gen_nodes.py`. Run it whenever the property definitions change or when adding a new evidence type:
+
+```bash
+# property definitions are read from ../php-spojenet-abraflexi/static/Properties.*.json
+npm run generate
+# or directly:
+python3 tools/gen_nodes.py
+```
+
+To add a new evidence type, append a tuple to the `TYPES` list in `tools/gen_nodes.py` and re-run the generator.
 
 ---
 
