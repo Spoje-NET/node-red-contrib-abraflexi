@@ -46,8 +46,10 @@
     "supertest": "^6.3.0"
   },
   "scripts": {
-    "test":     "mocha test/**_spec.js --timeout 10000",
-    "generate": "python3 tools/gen_nodes.py"
+    "test":       "mocha test/abraflexi-webhook_spec.js test/abraflexi-record_spec.js --timeout 10000",
+    "test:demo":  "mocha test/abraflexi-demo_spec.js --timeout 20000",
+    "test:all":   "mocha test/**_spec.js --timeout 20000",
+    "generate":   "python3 tools/gen_nodes.py"
   },
   "engines": {
     "node": ">=14.0.0"
