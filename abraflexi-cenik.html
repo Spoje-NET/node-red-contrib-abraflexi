@@ -1,0 +1,54 @@
+<script type="text/javascript">
+    RED.nodes.registerType('abraflexi-cenik', {
+        category:    'AbraFlexi',
+        color:       '#4C90B8',
+        defaults: {
+            name:   { value: '' },
+            server: { value: '', type: 'abraflexi-config', required: true }
+        },
+        inputs:       1,
+        outputs:      1,
+        icon:         'priceList.svg',
+        paletteLabel: 'Ceník',
+        label:        function () { return this.name || 'Ceník'; },
+        labelStyle:   function () { return this.name ? 'node_label_italic' : ''; },
+        inputLabels:  ['trigger / id'],
+        outputLabels: ['záznam']
+    });
+</script>
+
+<script type="text/html" data-template-name="abraflexi-cenik">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Název</label>
+        <input type="text" id="node-input-name" placeholder="Ceník">
+    </div>
+    <div class="form-row">
+        <label for="node-input-server"><i class="fa fa-server"></i> Server</label>
+        <input type="text" id="node-input-server">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="abraflexi-cenik">
+    <p>Načte záznam <strong>cenik</strong> z AbraFlexi podle ID.</p>
+
+    <h3>Vstup</h3>
+    <dl class="message-properties">
+        <dt>payload.id <span class="property-type">string | number</span></dt>
+        <dd>ID záznamu v AbraFlexi. Alternativně <code>msg.id</code>.</dd>
+    </dl>
+
+    <h3>Výstupy</h3>
+    <ol class="node-ports">
+        <li>Záznam
+            <dl class="message-properties">
+                <dt>payload <span class="property-type">object</span></dt>
+                <dd>Celý záznam <code>cenik</code> z AbraFlexi API.
+                    Klíčová pole: <code>id</code>, <code>lastUpdate</code>, <code>kod</code>, <code>nazev</code>, <code>cenaZaklBezDph</code>, <code>cenaZaklVcDph</code>, <code>cenaZakl</code>.</dd>
+                <dt>topic <span class="property-type">string</span></dt>
+                <dd><code>cenik</code></dd>
+                <dt>abraflexi_id <span class="property-type">string</span></dt>
+                <dd>ID záznamu.</dd>
+            </dl>
+        </li>
+    </ol>
+</script>

@@ -1,14 +1,37 @@
 {
   "name": "node-red-contrib-abraflexi",
-  "version": "0.2.0",
-  "description": "Node-RED input node that receives AbraFlexi Changes-API webhooks and emits one message per change record",
+  "version": "0.3.0",
+  "description": "Node-RED nodes for AbraFlexi: webhook receiver and evidence-type record nodes",
   "keywords": ["node-red", "abraflexi", "flexibee", "webhook", "erp", "accounting", "changes-api"],
   "author": "Vitex Software <info@vitexsoftware.cz>",
   "license": "MIT",
   "node-red": {
     "version": ">=3.0.0",
     "nodes": {
-      "abraflexi-webhook": "abraflexi-webhook.js"
+      "abraflexi-webhook":             "abraflexi-webhook.js",
+      "abraflexi-config":              "abraflexi-config.js",
+      "abraflexi-faktura-vydana":      "abraflexi-faktura-vydana.js",
+      "abraflexi-faktura-prijata":     "abraflexi-faktura-prijata.js",
+      "abraflexi-nabidka-vydana":      "abraflexi-nabidka-vydana.js",
+      "abraflexi-nabidka-prijata":     "abraflexi-nabidka-prijata.js",
+      "abraflexi-poptavka-vydana":     "abraflexi-poptavka-vydana.js",
+      "abraflexi-poptavka-prijata":    "abraflexi-poptavka-prijata.js",
+      "abraflexi-objednavka-vydana":   "abraflexi-objednavka-vydana.js",
+      "abraflexi-objednavka-prijata":  "abraflexi-objednavka-prijata.js",
+      "abraflexi-pohledavka":          "abraflexi-pohledavka.js",
+      "abraflexi-zavazek":             "abraflexi-zavazek.js",
+      "abraflexi-banka":               "abraflexi-banka.js",
+      "abraflexi-bankovni-ucet":       "abraflexi-bankovni-ucet.js",
+      "abraflexi-pokladni-pohyb":      "abraflexi-pokladni-pohyb.js",
+      "abraflexi-vzajemny-zapocet":    "abraflexi-vzajemny-zapocet.js",
+      "abraflexi-cenik":               "abraflexi-cenik.js",
+      "abraflexi-skladovy-pohyb":      "abraflexi-skladovy-pohyb.js",
+      "abraflexi-interni-doklad":      "abraflexi-interni-doklad.js",
+      "abraflexi-smlouva":             "abraflexi-smlouva.js",
+      "abraflexi-zakazka":             "abraflexi-zakazka.js",
+      "abraflexi-majetek":             "abraflexi-majetek.js",
+      "abraflexi-adresar":             "abraflexi-adresar.js",
+      "abraflexi-kontakt":             "abraflexi-kontakt.js"
     }
   },
   "dependencies": {
