@@ -1,3 +1,11 @@
+node-red-contrib-abraflexi (0.2.1) trixie; urgency=medium
+
+  * Install to /usr/share/node-red/node_modules/ so node-red palette loader
+    discovers nodes automatically; install all .js/.html node files (not just
+    the webhook pair); add NODE_PATH systemd drop-in; add postinst/postrm.
+
+ -- Vítězslav Dvořák <info@vitexsoftware.cz>  Thu, 19 Jun 2026 15:30:00 +0200
+
 node-red-contrib-abraflexi (0.2.0-1) trixie; urgency=medium
 
   * Add automated test suite (mocha + @node-red/node-test-helper + supertest)

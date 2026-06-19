@@ -1,6 +1,9 @@
 #!/usr/bin/make -f
 export DH_VERBOSE = 1
 
+PKG = node-red-contrib-abraflexi
+DEST = debian/$(PKG)/usr/share/node-red/node_modules/$(PKG)
+
 %:
 	dh $@
 
@@ -8,20 +11,22 @@ override_dh_auto_build:
 	npm install --production --ignore-scripts
 
 override_dh_auto_install:
-	install -d debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi
-	cp -a abraflexi-webhook.js abraflexi-webhook.html package.json README.md \
-		debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi/
-	cp -a icons debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi/
+	install -d $(DEST)
+	cp -a *.js *.html package.json README.md $(DEST)/
+	cp -a icons $(DEST)/
 	[ -d node_modules ] && \
-		install -d debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi/node_modules && \
-		cp -a node_modules/. debian/node-red-contrib-abraflexi/usr/share/nodejs/node-red-contrib-abraflexi/node_modules/ \
+		install -d $(DEST)/node_modules && \
+		cp -a node_modules/. $(DEST)/node_modules/ \
 		|| true
-	install -d debian/node-red-contrib-abraflexi/usr/share/icons/hicolor/scalable/apps
+	install -d debian/$(PKG)/usr/share/icons/hicolor/scalable/apps
 	install -m 644 node-red-contrib-abraflexi.svg \
-		debian/node-red-contrib-abraflexi/usr/share/icons/hicolor/scalable/apps/
-	install -d debian/node-red-contrib-abraflexi/usr/share/metainfo
+		debian/$(PKG)/usr/share/icons/hicolor/scalable/apps/
+	install -d debian/$(PKG)/usr/share/metainfo
 	install -m 644 debian/io.github.vitexus.node_red_contrib_abraflexi.metainfo.xml \
-		debian/node-red-contrib-abraflexi/usr/share/metainfo/
+		debian/$(PKG)/usr/share/metainfo/
+	install -d debian/$(PKG)/etc/systemd/system/node-red.service.d
+	install -m 644 debian/node-red-nodepath.conf \
+		debian/$(PKG)/etc/systemd/system/node-red.service.d/
 
 override_dh_shlibdeps:
 
