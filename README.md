@@ -1,3 +1,6 @@
+![Packaging: deb](https://img.shields.io/badge/packaging-.deb-red?logo=debian&logoColor=white)
+
+
 ![node-red-contrib-abraflexi](node-red-contrib-abraflexi.svg?raw=true)
 
 # node-red-contrib-abraflexi
